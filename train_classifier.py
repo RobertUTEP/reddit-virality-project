@@ -6,7 +6,14 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import (
+    classification_report,
+    accuracy_score,
+    confusion_matrix,
+    ConfusionMatrixDisplay
+)
+
+import matplotlib.pyplot as plt
 
 # -----------------------------
 # Load dataset
@@ -31,6 +38,7 @@ threshold = df["Upvotes"].quantile(0.90)
 df["viral"] = (df["Upvotes"] >= threshold).astype(int)
 
 print("Viral threshold:", threshold)
+
 print("\nClass counts:")
 print(df["viral"].value_counts())
 
@@ -99,9 +107,16 @@ lr_model.fit(X_train, y_train)
 
 lr_preds = lr_model.predict(X_test)
 
+lr_accuracy = accuracy_score(y_test, lr_preds)
+
 print("\n=== Logistic Regression ===")
-print("Accuracy:", accuracy_score(y_test, lr_preds))
-print(classification_report(y_test, lr_preds, zero_division=0))
+print("Accuracy:", lr_accuracy)
+
+print(classification_report(
+    y_test,
+    lr_preds,
+    zero_division=0
+))
 
 # -----------------------------
 # Random Forest
@@ -117,6 +132,96 @@ rf_model.fit(X_train, y_train)
 
 rf_preds = rf_model.predict(X_test)
 
+rf_accuracy = accuracy_score(y_test, rf_preds)
+
 print("\n=== Random Forest ===")
-print("Accuracy:", accuracy_score(y_test, rf_preds))
-print(classification_report(y_test, rf_preds, zero_division=0))
+print("Accuracy:", rf_accuracy)
+
+print(classification_report(
+    y_test,
+    rf_preds,
+    zero_division=0
+))
+
+# -----------------------------
+# Confusion Matrix - Logistic Regression
+# -----------------------------
+lr_cm = confusion_matrix(y_test, lr_preds)
+
+lr_display = ConfusionMatrixDisplay(
+    confusion_matrix=lr_cm,
+    display_labels=["Non-Viral", "Viral"]
+)
+
+lr_display.plot()
+
+plt.title("Logistic Regression Confusion Matrix")
+
+plt.savefig(
+    "logistic_regression_confusion_matrix.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+# -----------------------------
+# Confusion Matrix - Random Forest
+# -----------------------------
+rf_cm = confusion_matrix(y_test, rf_preds)
+
+rf_display = ConfusionMatrixDisplay(
+    confusion_matrix=rf_cm,
+    display_labels=["Non-Viral", "Viral"]
+)
+
+rf_display.plot()
+
+plt.title("Random Forest Confusion Matrix")
+
+plt.savefig(
+    "random_forest_confusion_matrix.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+# -----------------------------
+# Accuracy Comparison Bar Chart
+# -----------------------------
+model_names = [
+    "Logistic Regression",
+    "Random Forest"
+]
+
+accuracies = [
+    lr_accuracy,
+    rf_accuracy
+]
+
+plt.figure(figsize=(8, 5))
+
+plt.bar(model_names, accuracies)
+
+plt.ylim(0, 1)
+
+plt.ylabel("Accuracy")
+
+plt.title("Model Accuracy Comparison")
+
+for i, acc in enumerate(accuracies):
+    plt.text(
+        i,
+        acc + 0.02,
+        f"{acc:.2f}",
+        ha="center"
+    )
+
+plt.savefig(
+    "accuracy_comparison.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
