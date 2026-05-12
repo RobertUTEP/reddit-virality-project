@@ -24,13 +24,18 @@ df["text"] = df["Title"] + " " + df["Body"]
 
 # -----------------------------
 # Viral label
+# Top 10% of upvotes = viral
 # -----------------------------
 threshold = df["Upvotes"].quantile(0.90)
 
 df["viral"] = (df["Upvotes"] >= threshold).astype(int)
 
+print("Viral threshold:", threshold)
+print("\nClass counts:")
+print(df["viral"].value_counts())
+
 # -----------------------------
-# Tagged documents
+# Tagged documents for Doc2Vec
 # -----------------------------
 documents = [
     TaggedDocument(
@@ -60,48 +65,52 @@ model.train(
 )
 
 # -----------------------------
-# Create vectors
+# Create Doc2Vec vectors
 # -----------------------------
 X = np.array([
     model.dv[str(i)]
     for i in range(len(documents))
 ])
 
-# Target labels
 y = df["viral"]
 
 # -----------------------------
 # Split data
+# stratify keeps viral/non-viral ratio balanced
 # -----------------------------
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
     test_size=0.2,
-    random_state=42
+    random_state=42,
+    stratify=y
 )
 
 # -----------------------------
 # Logistic Regression
+# class_weight balances viral/non-viral classes
 # -----------------------------
-lr_model = LogisticRegression(max_iter=1000)
+lr_model = LogisticRegression(
+    max_iter=1000,
+    class_weight="balanced"
+)
 
 lr_model.fit(X_train, y_train)
 
 lr_preds = lr_model.predict(X_test)
 
 print("\n=== Logistic Regression ===")
-
-print("Accuracy:",
-      accuracy_score(y_test, lr_preds))
-
-print(classification_report(y_test, lr_preds))
+print("Accuracy:", accuracy_score(y_test, lr_preds))
+print(classification_report(y_test, lr_preds, zero_division=0))
 
 # -----------------------------
 # Random Forest
+# class_weight balances viral/non-viral classes
 # -----------------------------
 rf_model = RandomForestClassifier(
     n_estimators=100,
-    random_state=42
+    random_state=42,
+    class_weight="balanced"
 )
 
 rf_model.fit(X_train, y_train)
@@ -109,8 +118,5 @@ rf_model.fit(X_train, y_train)
 rf_preds = rf_model.predict(X_test)
 
 print("\n=== Random Forest ===")
-
-print("Accuracy:",
-      accuracy_score(y_test, rf_preds))
-
-print(classification_report(y_test, rf_preds))
+print("Accuracy:", accuracy_score(y_test, rf_preds))
+print(classification_report(y_test, rf_preds, zero_division=0))
